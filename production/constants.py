@@ -1,0 +1,6 @@
+project_id = ""
+dataset_id = ""
+basic_history_table = ""
+history_agg_table = ""
+final_rating_table = ""
+bucket_name = ""

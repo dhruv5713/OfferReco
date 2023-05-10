@@ -1,0 +1,52 @@
+WITH
+users_to_include AS (
+  SELECT DISTINCT clientId FROM
+  `{{project_id}}.{{dataset_id}}.{{basic_history_table}}`
+  WHERE date BETWEEN FORMAT_DATE("%Y%m%d", DATE_SUB(DATE(CURRENT_TIMESTAMP(), 'Asia/Kolkata'), INTERVAL 30 DAY)) 
+        AND FORMAT_DATE("%Y%m%d", DATE_SUB(DATE(CURRENT_TIMESTAMP(), 'Asia/Kolkata'), INTERVAL 1 DAY))
+),
+  online_data AS(
+    SELECT
+      clientid,
+      pagePath,
+      timeOnPage
+    FROM
+      `{{project_id}}.{{dataset_id}}.{{basic_history_table}}`
+    WHERE clientId IN (SELECT clientId FROM users_to_include)
+    AND date BETWEEN FORMAT_DATE("%Y%m%d", DATE_SUB(DATE(CURRENT_TIMESTAMP(), 'Asia/Kolkata'), INTERVAL 60 DAY)) 
+        AND FORMAT_DATE("%Y%m%d", DATE_SUB(DATE(CURRENT_TIMESTAMP(), 'Asia/Kolkata'), INTERVAL 1 DAY))
+      )
+
+SELECT
+  clientId,
+  blog,
+  pagepath,
+  0.3 * (1 + (timeOnPage - 57937) / 57937) AS rating,
+FROM (
+  SELECT
+    clientId,
+    blog,
+    pagepath,
+    AVG(timeOnPage) AS timeOnPage
+  FROM (
+    SELECT
+      clientId,
+      pagepath,
+      LOWER(SPLIT(ARRAY_REVERSE(SPLIT(pagePath, '/'))[
+        OFFSET
+          (0)], '.')[
+      OFFSET
+        (0)]) AS blog,
+      timeOnPage AS timeOnPage
+    FROM
+      (
+        SELECT online_data.clientId, online_data.pagePath, online_data.timeOnPage 
+        FROM online_data 
+      )
+      WHERE timeOnPage IS NOT NULL
+    )
+  GROUP BY
+    1,
+    2,
+    3)
+    ORDER BY 1

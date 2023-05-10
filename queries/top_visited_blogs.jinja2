@@ -1,0 +1,20 @@
+WITH
+  online_data AS(
+  SELECT
+    date,
+    clientId,
+    pagePath,
+    timeOnPage
+    FROM
+      `{{project_id}}.{{dataset_id}}.{{basic_history_table}}`
+    WHERE date BETWEEN FORMAT_DATE("%Y%m%d", DATE_SUB(DATE(CURRENT_TIMESTAMP(), 'Asia/Kolkata'), INTERVAL 30 DAY)) 
+      AND FORMAT_DATE("%Y%m%d", DATE_SUB(DATE(CURRENT_TIMESTAMP(), 'Asia/Kolkata'), INTERVAL 1 DAY))
+      )
+      
+SELECT pagepath, LOWER(SPLIT(ARRAY_REVERSE(SPLIT(pagePath, '/'))[OFFSET (0)], '.')[OFFSET (0)]) AS blog, COUNT(*) as visit_count
+FROM online_data 
+GROUP BY 1, 2
+ORDER BY 3 DESC
+LIMIT 25
+
+

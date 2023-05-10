@@ -1,0 +1,41 @@
+ WITH
+  online_data AS(
+  SELECT
+    date,
+    clientId,
+    fedid,
+    pagepath,
+    (nextTime - time) as timeOnPage
+  FROM (
+    SELECT
+      date,
+      clientid,
+      visitStartTime,
+      hits.page.pagepath,
+      (SELECT value FROM t.customDimensions WHERE index=1) fedid,
+      hits.time AS time,
+      LEAD(hits.time, 1) OVER (PARTITION BY clientId, visitStartTime ORDER BY hits.time ASC) AS nextTime
+    FROM
+      `{Project}.ga_sessions_*` t,
+      UNNEST (hits) AS hits
+    WHERE
+      _table_suffix BETWEEN "{{from_date}}" 
+      AND "{{to_date}}"
+    GROUP BY
+      1,
+      2,
+      3,
+      4,
+      5,
+      6)
+  WHERE REGEXP_CONTAINS(pagePath,'(blogs/).*.page$')
+  AND NOT REGEXP_CONTAINS(SPLIT(pagepath, '?')[offset(0)], 'blogs/[a-zA-Z-]*.page|.*.html')
+  GROUP BY
+    1,
+    2,
+    3,
+    4,
+    5)
+
+SELECT * FROM online_data
+WHERE timeOnPage is not null
